@@ -4,7 +4,10 @@ import com.backend.estudiantes.dto.LoginRequest;
 import com.backend.estudiantes.model.Usuario;
 import com.backend.estudiantes.service.AuthService;
 import com.backend.estudiantes.service.JwtService;
+import com.backend.estudiantes.utils.AuthResponseBuilder;
+import com.backend.estudiantes.utils.ErrorResponseBuilder;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,15 +20,16 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.Map;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    @Autowired
-    private AuthService authService;
 
-    @Autowired
-    private JwtService jwtService;
+    private final AuthService authService;
+
+
+    private final JwtService jwtService;
 
     //Endpoint para login
     @PostMapping("/login")
@@ -40,20 +44,15 @@ public class AuthController {
 
             String jwtToken = jwtService.generateToken(extraClaims, usuario);
 
-            return ResponseEntity.ok(Map.of(
-                    "message", "Login exitoso!",
-                    "token", jwtToken,
-                    "expiresIn", jwtService.getJwtExpirationMs(),
-                    "data", Map.of(
-                            "email", usuario.getEmail(),
-                            "rol", usuario.getRol().name()
-                    )
-            ));
+            return ResponseEntity.ok(AuthResponseBuilder.buildAuthResponse(jwtToken, usuario));
+
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "Error", "Credenciales incorrectas"
-            ));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ErrorResponseBuilder.buildErrorResponse(
+                            e.getMessage(),
+                            HttpStatus.UNAUTHORIZED
+                    ));
+
         }
     }
-
 }
